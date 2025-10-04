@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級一番賞</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a202c; /* 深灰色背景 */
+            color: #e2e8f0; /* 淺灰色文字 */
+        }
+        .prize-card {
+            background-color: #2d3748;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .prize-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+        .prize-A { border-color: #f6e05e; } /* 金色 */
+        .prize-B { border-color: #f56565; } /* 紅色 */
+        .prize-C { border-color: #48bb78; } /* 綠色 */
+        .prize-D { border-color: #4299e1; } /* 藍色 */
+        .prize-E { border-color: #a0aec0; } /* 灰色 */
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #4299e1;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2b6cb0;
+        }
+
+        .btn-danger {
+            background-color: #f56565;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c53030;
+        }
+        
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            max-width: 90%;
+            width: 500px;
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4299e1;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container mx-auto p-4 md:p-8">
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="modal-backdrop hidden">
+            <div class="loader"></div>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="login-screen">
+            <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-xl shadow-lg mt-16">
+                <h1 class="text-3xl font-bold text-center mb-6 text-white">教師登入</h1>
+                <form id="login-form">
+                    <div class="mb-4">
+                        <label for="username" class="block mb-2 text-sm font-medium text-gray-300">帳號</label>
+                        <input type="text" id="username" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="password" class="block mb-2 text-sm font-medium text-gray-300">密碼</label>
+                        <input type="password" id="password" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <button type="submit" class="w-full btn btn-primary font-bold py-2 px-4 rounded-lg">登入</button>
+                    <p class="text-center mt-4 text-gray-400">學生請直接點擊下方按鈕</p>
+                    <button type="button" id="student-view-btn" class="w-full btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg mt-2">進入學生模式</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Class Selection Screen -->
+        <div id="class-selection-screen" class="hidden">
+             <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-xl shadow-lg mt-16">
+                <h1 class="text-3xl font-bold text-center mb-2 text-white">請選擇班級</h1>
+                <p class="text-center text-gray-400 mb-6">老師可在此新增或刪除班級</p>
+                <button id="manage-classes-btn" class="w-full mb-6 btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg hidden">管理班級</button>
+                <div id="class-list" class="flex flex-col space-y-2">
+                    <!-- Class buttons will be inserted here -->
+                </div>
+                <button type="button" id="back-to-login-btn" class="w-full btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mt-6">返回登入</button>
+             </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div id="main-content" class="hidden">
+            <header class="flex flex-wrap justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-4xl font-bold text-white">班級一番賞</h1>
+                    <p id="class-name-display" class="text-xl text-blue-300"></p>
+                </div>
+                <div id="teacher-controls" class="hidden flex items-center space-x-2 mt-4 md:mt-0">
+                    <button id="reset-btn" class="btn btn-danger font-bold py-2 px-4 rounded-lg">重置獎品</button>
+                    <button id="logout-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">登出</button>
+                </div>
+                 <div id="student-back-controls" class="hidden mt-4 md:mt-0">
+                    <button id="student-back-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">返回選擇班級</button>
+                </div>
+            </header>
+
+            <!-- Prize Section -->
+            <div id="teacher-draw-section" class="text-center mb-8 hidden">
+                <h2 class="text-2xl font-semibold mb-4 text-white">抽獎區</h2>
+                <button id="draw-btn" class="btn btn-primary text-xl font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105">開始抽獎！</button>
+            </div>
+
+            <h2 class="text-2xl font-semibold mb-4 text-white">剩餘獎品</h2>
+            <div id="prize-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Prize cards will be inserted here -->
+            </div>
+
+            <!-- History Section -->
+            <h2 class="text-2xl font-semibold mb-4 text-white">抽獎紀錄</h2>
+            <div class="bg-gray-800 rounded-xl shadow-lg p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="text-gray-400">
+                            <tr>
+                                <th class="p-3">時間</th>
+                                <th class="p-3">得獎者</th>
+                                <th class="p-3">獎品</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-log">
+                           <!-- History rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prize Result Modal -->
+        <div id="prize-modal" class="modal-backdrop hidden">
+            <div id="prize-modal-content" class="modal-content text-center relative">
+                <h2 class="text-2xl font-bold mb-4">恭喜！抽中了...</h2>
+                <div id="prize-result" class="text-4xl font-bold my-8"></div>
+                <button id="close-prize-modal" class="btn btn-primary font-bold py-2 px-6 rounded-lg">太棒了！</button>
+            </div>
+        </div>
+        
+        <!-- Manage Classes Modal -->
+        <div id="manage-classes-modal" class="modal-backdrop hidden">
+            <div class="modal-content">
+                <h2 class="text-2xl font-bold mb-6">管理班級</h2>
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-2">新增班級</h3>
+                    <div class="flex">
+                        <input type="text" id="new-class-name" placeholder="請輸入新班級名稱" class="w-full bg-gray-700 border border-gray-600 rounded-l-lg p-2.5 text-white focus:ring-blue-500 focus:border-blue-500">
+                        <button id="add-class-btn" class="btn bg-green-600 hover:bg-green-700 text-white font-bold p-2.5 rounded-r-lg">新增</button>
+                    </div>
+                </div>
+                 <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">刪除班級</h3>
+                    <div id="delete-class-list" class="space-y-2">
+                        <!-- Deletable class list will be here -->
+                    </div>
+                </div>
+                <button id="close-manage-modal" class="w-full mt-6 btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">關閉</button>
+            </div>
+        </div>
+
+        <!-- Generic Alert/Confirm Modal -->
+        <div id="custom-modal" class="modal-backdrop hidden">
+            <div class="modal-content">
+                <h2 id="custom-modal-title" class="text-2xl font-bold mb-4"></h2>
+                <p id="custom-modal-message" class="text-gray-300 mb-6"></p>
+                <div id="custom-modal-buttons" class="flex justify-end space-x-4">
+                    <!-- Buttons will be injected here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 設定 ---
+        // !!! 重要：請將此處的 URL 替換為您部署 Google Apps Script 後得到的網址 !!!
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLff9LbLW5sWe0AQDxpmtjubvsw7hZ8RI_h19elwUOZRi4NMlQV62v114Fbx75Pby1ow/exec';
+
+        const prizeDetails = {
+            'A': { name: '🎧 A賞：小米無線耳機', total: 1, class: 'prize-A' },
+            'B': { name: '🍗 B賞：肯德基紙包雞套餐', total: 5, class: 'prize-B' },
+            'C': { name: '🥤 C賞：手搖飲料(無糖)', total: 12, class: 'prize-C' },
+            'D': { name: '💯 D賞：作業滿分', total: 15, class: 'prize-D' },
+            'E': { name: '🍬 E賞：零食一份', total: 30, class: 'prize-E' },
+        };
+        
+        // --- DOM 元素 ---
+        const app = document.getElementById('app');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loginScreen = document.getElementById('login-screen');
+        const classSelectionScreen = document.getElementById('class-selection-screen');
+        const mainContent = document.getElementById('main-content');
+        
+        // --- 狀態管理 ---
+        let state = {
+            isLoggedIn: false,
+            sessionToken: null, // *** 安全性更新：儲存臨時通行證 ***
+            currentClass: null,
+            classes: [],
+            prizes: {},
+            history: [],
+        };
+        
+        // --- Custom Modal Functions ---
+        function showAlert(message, title = '通知') {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('custom-modal-title').textContent = title;
+            document.getElementById('custom-modal-message').innerHTML = `<p>${message}</p>`;
+            const buttonsDiv = document.getElementById('custom-modal-buttons');
+            buttonsDiv.innerHTML = `<button id="custom-modal-ok" class="btn btn-primary font-bold py-2 px-6 rounded-lg">確定</button>`;
+            
+            modal.classList.remove('hidden');
+
+            const okBtn = document.getElementById('custom-modal-ok');
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            
+            newOkBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+        }
+
+        function showConfirm(message, title, onConfirm) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('custom-modal-title').textContent = title;
+            document.getElementById('custom-modal-message').innerHTML = `<p>${message}</p>`;
+            const buttonsDiv = document.getElementById('custom-modal-buttons');
+            buttonsDiv.innerHTML = `
+                <button id="custom-modal-cancel" class="btn bg-gray-600 hover:bg-gray-700 font-bold py-2 px-6 rounded-lg">取消</button>
+                <button id="custom-modal-confirm" class="btn btn-danger font-bold py-2 px-6 rounded-lg">確定</button>
+            `;
+            
+            modal.classList.remove('hidden');
+
+            const confirmBtn = document.getElementById('custom-modal-confirm');
+            const cancelBtn = document.getElementById('custom-modal-cancel');
+            
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newConfirmBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                if (onConfirm) onConfirm(true);
+            });
+            
+            newCancelBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                if (onConfirm) onConfirm(false);
+            });
+        }
+
+        function showPrompt(message, title, onComplete) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('custom-modal-title').textContent = title;
+            document.getElementById('custom-modal-message').innerHTML = `
+                <p class="mb-4">${message}</p>
+                <input type="text" id="custom-modal-input" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white focus:ring-blue-500 focus:border-blue-500" placeholder="請在此輸入...">`;
+            
+            const buttonsDiv = document.getElementById('custom-modal-buttons');
+            buttonsDiv.innerHTML = `
+                <button id="custom-modal-cancel" class="btn bg-gray-600 hover:bg-gray-700 font-bold py-2 px-6 rounded-lg">取消</button>
+                <button id="custom-modal-confirm" class="btn btn-primary font-bold py-2 px-6 rounded-lg">確定</button>
+            `;
+            
+            modal.classList.remove('hidden');
+            const inputField = document.getElementById('custom-modal-input');
+            inputField.focus();
+
+            const confirmBtn = document.getElementById('custom-modal-confirm');
+            const cancelBtn = document.getElementById('custom-modal-cancel');
+            
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newConfirmBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                if (onComplete) onComplete(inputField.value);
+            });
+            
+            newCancelBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                if (onComplete) onComplete(null); // Return null if cancelled
+            });
+        }
+        
+        // --- API 呼叫 ---
+        // *** 安全性更新：修改 apiCall 以支援 POST，並區分公開和需驗證的操作 ***
+        async function apiCall(action, params = {}, method = 'GET') {
+            if (!SCRIPT_URL) {
+                showAlert('錯誤：Google Apps Script 網址未設定！請在 index.html 中填寫 SCRIPT_URL 變數。', '設定錯誤');
+                return { success: false, error: 'SCRIPT_URL not set' };
+            }
+            toggleLoading(true);
+            
+            try {
+                let response;
+                if (method === 'GET') {
+                    const url = new URL(SCRIPT_URL);
+                    url.searchParams.append('action', action);
+                    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+                    response = await fetch(url);
+                } else { // POST
+                    // 需驗證的操作，自動加入 token
+                    if (state.sessionToken) {
+                        params.token = state.sessionToken;
+                    }
+                    response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        redirect: 'follow',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps Script 限制
+                        body: JSON.stringify({ action, params })
+                    });
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                
+                // 後端回報 token 失效，強制登出
+                if (result.success === false && result.error === 'Authentication failed') {
+                    handleLogout(true); // 傳入 true 表示是因 token 失效而登出
+                }
+
+                return result;
+            } catch (error) {
+                console.error('API Call Error:', error);
+                showAlert(`與伺服器通訊失敗: ${error.message}`, '連線錯誤');
+                return { success: false, error: error.message };
+            } finally {
+                toggleLoading(false);
+            }
+        }
+        
+        // --- 視圖切換 ---
+        function showView(view) {
+            loginScreen.classList.add('hidden');
+            classSelectionScreen.classList.add('hidden');
+            mainContent.classList.add('hidden');
+            document.getElementById(view).classList.remove('hidden');
+        }
+
+        function toggleLoading(show) {
+            loadingOverlay.classList.toggle('hidden', !show);
+        }
+
+        // --- 渲染函式 ---
+        function renderPrizes() {
+            const prizeGrid = document.getElementById('prize-grid');
+            prizeGrid.innerHTML = '';
+            Object.entries(prizeDetails).forEach(([key, detail]) => {
+                const remaining = state.prizes[key] ?? 0;
+                const card = document.createElement('div');
+                card.className = `prize-card p-6 flex justify-between items-center ${detail.class}`;
+                
+                const contentDiv = document.createElement('div');
+                const title = document.createElement('h3');
+                title.className = 'text-xl font-bold';
+                title.textContent = detail.name; // 使用 textContent 防範 XSS
+                const desc = document.createElement('p');
+                desc.className = 'text-gray-400';
+                desc.textContent = `總數: ${detail.total}`;
+                contentDiv.append(title, desc);
+
+                const countDiv = document.createElement('div');
+                countDiv.className = 'text-3xl font-bold';
+                const countSpan = document.createElement('span');
+                countSpan.textContent = remaining;
+                countDiv.appendChild(countSpan);
+
+                card.append(contentDiv, countDiv);
+                prizeGrid.appendChild(card);
+            });
+        }
+        
+        // *** 安全性更新：改用 document.createElement 和 textContent 防範 XSS ***
+        function renderHistory() {
+            const historyLog = document.getElementById('history-log');
+            historyLog.innerHTML = ''; // Clear previous content
+            if (state.history.length === 0) {
+                 const row = historyLog.insertRow();
+                 const cell = row.insertCell();
+                 cell.colSpan = 3;
+                 cell.className = 'text-center p-4 text-gray-500';
+                 cell.textContent = '目前沒有抽獎紀錄';
+                 return;
+            }
+            state.history.forEach(item => {
+                const row = historyLog.insertRow();
+                row.className = 'border-b border-gray-700';
+                
+                const cellTime = row.insertCell();
+                cellTime.className = 'p-3 text-gray-400';
+                cellTime.textContent = new Date(item.timestamp).toLocaleString();
+                
+                const cellName = row.insertCell();
+                cellName.className = 'p-3 font-semibold';
+                cellName.textContent = item.studentName; // 安全地設定學生姓名
+                
+                const cellPrize = row.insertCell();
+                cellPrize.className = 'p-3';
+                cellPrize.textContent = prizeDetails[item.prize] ? prizeDetails[item.prize].name : '未知獎品'; // 安全地設定獎品名稱
+            });
+        }
+
+        function renderClassSelection() {
+            const classList = document.getElementById('class-list');
+            classList.innerHTML = '';
+            if (state.classes.length === 0 && state.isLoggedIn) {
+                 classList.innerHTML = '<p class="text-center text-gray-400 my-4">目前沒有班級，請點擊上方「管理班級」來新增。</p>';
+            } else if (state.classes.length === 0) {
+                 classList.innerHTML = '<p class="text-center text-gray-400 my-4">目前老師尚未建立任何班級。</p>';
+            }
+            state.classes.forEach(className => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full btn btn-primary font-bold py-3 px-4 rounded-lg';
+                btn.textContent = className;
+                btn.onclick = () => selectClass(className);
+                classList.appendChild(btn);
+            });
+        }
+        
+        // --- 邏輯處理 ---
+        // *** 安全性更新：改用 POST 登入並取得 token ***
+        async function handleLogin(username, password) {
+            const result = await apiCall('login', { username, password }, 'POST');
+            if (result.success && result.data.token) {
+                state.isLoggedIn = true;
+                state.sessionToken = result.data.token;
+                sessionStorage.setItem('sessionToken', result.data.token);
+                await loadClasses();
+                showView('class-selection-screen');
+                document.getElementById('manage-classes-btn').classList.remove('hidden');
+            } else {
+                showAlert(`登入失敗: ${result.error}`, '登入錯誤');
+            }
+        }
+        
+        function handleLogout(isTokenExpired = false) {
+            if (isTokenExpired) {
+                showAlert('閒置過久或憑證已失效，請重新登入。', '連線逾時');
+            }
+            state.isLoggedIn = false;
+            state.sessionToken = null;
+            state.currentClass = null;
+            sessionStorage.removeItem('sessionToken');
+            showView('login-screen');
+            document.getElementById('teacher-controls').classList.add('hidden');
+            document.getElementById('teacher-draw-section').classList.add('hidden');
+            document.getElementById('student-back-controls').classList.add('hidden');
+        }
+        
+        // 公開資料，使用 GET
+        async function loadClasses() {
+            const result = await apiCall('getClasses', {}, 'GET');
+            if (result.success) {
+                state.classes = result.data;
+                renderClassSelection();
+            }
+        }
+        
+        // 公開資料，使用 GET
+        async function selectClass(className) {
+            const result = await apiCall('getClassData', { className }, 'GET');
+            if (result.success) {
+                state.currentClass = className;
+                state.prizes = result.data.prizes;
+                state.history = result.data.history;
+                
+                document.getElementById('class-name-display').textContent = `當前班級: ${className}`;
+                renderPrizes();
+                renderHistory();
+                showView('main-content');
+                
+                if (state.isLoggedIn) {
+                    document.getElementById('teacher-controls').classList.remove('hidden');
+                    document.getElementById('teacher-draw-section').classList.remove('hidden');
+                    document.getElementById('student-back-controls').classList.add('hidden');
+                } else {
+                     document.getElementById('student-back-controls').classList.remove('hidden');
+                }
+            } else {
+                showAlert(`載入班級資料失敗: ${result.error}`, '資料錯誤');
+            }
+        }
+        
+        async function handleDraw() {
+            showPrompt('請輸入得獎學生姓名：', '進行抽獎', (studentName) => {
+                if (studentName === null) return;
+                if (!studentName || studentName.trim() === '') {
+                    showAlert("學生姓名不可為空！", "輸入錯誤");
+                    return;
+                }
+                performDraw(studentName.trim());
+            });
+        }
+        
+        // 需驗證操作，使用 POST
+        async function performDraw(studentName) {
+            const result = await apiCall('drawPrize', { className: state.currentClass, studentName: studentName }, 'POST');
+
+            if (result.success && result.data.prize) {
+                const prizeWon = result.data.prize;
+                state.prizes = result.data.prizes;
+                state.history = result.data.history;
+                renderPrizes();
+                renderHistory();
+                showPrizeModal(prizeWon);
+            } else {
+                showAlert(`抽獎失敗: ${result.error || '獎品已抽完'}`, '抽獎失敗');
+            }
+        }
+
+        function showPrizeModal(prize) {
+            const modal = document.getElementById('prize-modal');
+            const resultDiv = document.getElementById('prize-result');
+            resultDiv.textContent = prizeDetails[prize].name;
+            resultDiv.className = `text-4xl font-bold my-8 ${prizeDetails[prize].class.replace('prize-', 'text-').replace('a0aec0', 'gray-300')}`;
+            modal.classList.remove('hidden');
+            
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        }
+        
+        // 需驗證操作，使用 POST
+        async function handleReset() {
+            showConfirm(`確定要重置班級「${state.currentClass}」的所有獎品和抽獎紀錄嗎？此操作無法復原！`, '重置確認', async (confirmed) => {
+                if(confirmed) {
+                    const result = await apiCall('resetClass', { className: state.currentClass }, 'POST');
+                    if (result.success) {
+                        showAlert('重置成功！');
+                        await selectClass(state.currentClass);
+                    } else {
+                        showAlert(`重置失敗: ${result.error}`, '操作失敗');
+                    }
+                }
+            });
+        }
+        
+        // --- 初始化 & 事件監聽 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedToken = sessionStorage.getItem('sessionToken');
+            if(savedToken){
+                state.isLoggedIn = true;
+                state.sessionToken = savedToken;
+                loadClasses();
+                showView('class-selection-screen');
+                document.getElementById('manage-classes-btn').classList.remove('hidden');
+            }
+
+            document.getElementById('login-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                handleLogin(username, password);
+            });
+            
+            document.getElementById('student-view-btn').addEventListener('click', async () => {
+                state.isLoggedIn = false;
+                state.sessionToken = null;
+                sessionStorage.removeItem('sessionToken');
+                await loadClasses();
+                showView('class-selection-screen');
+                document.getElementById('manage-classes-btn').classList.add('hidden');
+            });
+
+            document.getElementById('back-to-login-btn').addEventListener('click', () => {
+                showView('login-screen');
+            });
+            
+            document.getElementById('student-back-btn').addEventListener('click', () => {
+                state.currentClass = null;
+                showView('class-selection-screen');
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', () => handleLogout(false));
+            document.getElementById('draw-btn').addEventListener('click', handleDraw);
+            document.getElementById('reset-btn').addEventListener('click', handleReset);
+            
+            document.getElementById('close-prize-modal').addEventListener('click', () => {
+                 document.getElementById('prize-modal').classList.add('hidden');
+            });
+            
+            const manageModal = document.getElementById('manage-classes-modal');
+            
+            document.getElementById('manage-classes-btn').addEventListener('click', () => {
+                renderDeleteClassList();
+                manageModal.classList.remove('hidden');
+            });
+
+            document.getElementById('close-manage-modal').addEventListener('click', () => {
+                manageModal.classList.add('hidden');
+            });
+            
+            // 需驗證操作，使用 POST
+            document.getElementById('add-class-btn').addEventListener('click', async () => {
+                const newClassNameInput = document.getElementById('new-class-name');
+                const newClassName = newClassNameInput.value.trim();
+                if (!newClassName) {
+                    showAlert('班級名稱不可為空！', '輸入錯誤');
+                    return;
+                }
+
+                const result = await apiCall('manageClass', { task: 'add', className: newClassName }, 'POST');
+                if (result.success) {
+                    showAlert(`班級「${newClassName}」新增成功！`);
+                    newClassNameInput.value = '';
+                    state.classes.push(newClassName);
+                    renderDeleteClassList();
+                    renderClassSelection();
+                } else {
+                    showAlert(`新增失敗: ${result.error}`, '操作失敗');
+                }
+            });
+            
+            // *** 安全性更新：改用 document.createElement 和 textContent 防範 XSS ***
+            function renderDeleteClassList() {
+                const listDiv = document.getElementById('delete-class-list');
+                listDiv.innerHTML = '';
+                if(state.classes.length === 0){
+                    listDiv.innerHTML = '<p class="text-gray-500">目前沒有班級可供刪除。</p>';
+                    return;
+                }
+                state.classes.forEach(className => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center bg-gray-700 p-2 rounded-lg';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = className; // 安全地設定班級名稱
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-danger text-xs py-1 px-2 rounded';
+                    deleteBtn.textContent = '刪除';
+                    deleteBtn.dataset.class = className;
+                    deleteBtn.addEventListener('click', handleDeleteClass);
+
+                    item.append(nameSpan, deleteBtn);
+                    listDiv.appendChild(item);
+                });
+            }
+            
+            // 需驗證操作，使用 POST
+            async function handleDeleteClass(event) {
+                const className = event.target.dataset.class;
+                showConfirm(`確定要刪除班級「${className}」嗎？所有相關資料將會遺失！`, '刪除確認', async (confirmed) => {
+                    if(confirmed){
+                        const result = await apiCall('manageClass', { task: 'delete', className }, 'POST');
+                        if (result.success) {
+                            showAlert(`班級「${className}」已刪除。`);
+                            state.classes = state.classes.filter(c => c !== className);
+                            if(state.currentClass === className){
+                               handleLogout();
+                            }
+                            renderDeleteClassList();
+                            renderClassSelection();
+                        } else {
+                            showAlert(`刪除失敗: ${result.error}`, '操作失敗');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
