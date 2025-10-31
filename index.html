@@ -18,17 +18,14 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: 2px solid transparent;
+            border: 2px solid #4a5568;
+            overflow: hidden; /* 確保圖片圓角 */
         }
         .prize-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
         }
-        .prize-A { border-color: #f6e05e; } /* 金色 */
-        .prize-B { border-color: #f56565; } /* 紅色 */
-        .prize-C { border-color: #48bb78; } /* 綠色 */
-        .prize-D { border-color: #4299e1; } /* 藍色 */
-        .prize-E { border-color: #a0aec0; } /* 灰色 */
+        /* 移除 A-E 賞的邊框顏色，因為獎品是動態的 */
 
         .btn {
             transition: all 0.3s ease;
@@ -61,6 +58,7 @@
             justify-content: center;
             align-items: center;
             z-index: 50;
+            backdrop-filter: blur(4px);
         }
         .modal-content {
             background-color: #2d3748;
@@ -69,6 +67,8 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             max-width: 90%;
             width: 500px;
+            max-height: 90vh; /* 增加最大高度 */
+            overflow-y: auto; /* 內容過多時滾動 */
         }
 
         .loader {
@@ -78,6 +78,22 @@
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
+        }
+
+        /* 獎品圖片樣式 */
+        .prize-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background-color: #4a5568;
+        }
+        .modal-prize-image {
+            width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background-color: #4a5568;
         }
 
         @keyframes spin {
@@ -96,7 +112,8 @@
 
         <!-- Login Screen -->
         <div id="login-screen">
-            <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-xl shadow-lg mt-16">
+            <!-- ... (登入畫面 HTML，與之前相同，故省略) ... -->
+             <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-xl shadow-lg mt-16">
                 <h1 class="text-3xl font-bold text-center mb-6 text-white">教師登入</h1>
                 <form id="login-form">
                     <div class="mb-4">
@@ -116,6 +133,7 @@
 
         <!-- Class Selection Screen -->
         <div id="class-selection-screen" class="hidden">
+             <!-- ... (選擇班級畫面 HTML，與之前相同，故省略) ... -->
              <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-xl shadow-lg mt-16">
                 <h1 class="text-3xl font-bold text-center mb-2 text-white">請選擇班級</h1>
                 <p class="text-center text-gray-400 mb-6">老師可在此新增或刪除班級</p>
@@ -134,7 +152,9 @@
                     <h1 class="text-4xl font-bold text-white">班級一番賞</h1>
                     <p id="class-name-display" class="text-xl text-blue-300"></p>
                 </div>
-                <div id="teacher-controls" class="hidden flex items-center space-x-2 mt-4 md:mt-0">
+                <!-- *** 功能更新：新增「管理獎品」按鈕 *** -->
+                <div id="teacher-controls" class="hidden flex flex-wrap items-center gap-2 mt-4 md:mt-0">
+                    <button id="manage-prizes-btn" class="btn bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg">管理獎品</button>
                     <button id="reset-btn" class="btn btn-danger font-bold py-2 px-4 rounded-lg">重置獎品</button>
                     <button id="logout-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">登出</button>
                 </div>
@@ -151,7 +171,7 @@
 
             <h2 class="text-2xl font-semibold mb-4 text-white">剩餘獎品</h2>
             <div id="prize-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <!-- Prize cards will be inserted here -->
+                <!-- 獎品卡片將由 JS 動態插入 -->
             </div>
 
             <!-- History Section -->
@@ -167,7 +187,7 @@
                             </tr>
                         </thead>
                         <tbody id="history-log">
-                           <!-- History rows will be inserted here -->
+                           <!-- 抽獎紀錄將由 JS 動態插入 -->
                         </tbody>
                     </table>
                 </div>
@@ -178,13 +198,16 @@
         <div id="prize-modal" class="modal-backdrop hidden">
             <div id="prize-modal-content" class="modal-content text-center relative">
                 <h2 class="text-2xl font-bold mb-4">恭喜！抽中了...</h2>
-                <div id="prize-result" class="text-4xl font-bold my-8"></div>
+                <!-- *** 功能更新：顯示獎品圖片 *** -->
+                <img id="prize-result-image" src="" alt="獎品圖片" class="modal-prize-image hidden" onerror="this.style.display='none'">
+                <div id="prize-result" class="text-4xl font-bold my-8 text-yellow-300"></div>
                 <button id="close-prize-modal" class="btn btn-primary font-bold py-2 px-6 rounded-lg">太棒了！</button>
             </div>
         </div>
         
         <!-- Manage Classes Modal -->
         <div id="manage-classes-modal" class="modal-backdrop hidden">
+             <!-- ... (管理班級 Modal HTML，與之前相同，故省略) ... -->
             <div class="modal-content">
                 <h2 class="text-2xl font-bold mb-6">管理班級</h2>
                 <div class="mb-6">
@@ -204,8 +227,46 @@
             </div>
         </div>
 
+        <!-- *** 功能更新：新增「管理獎品」Modal *** -->
+        <div id="manage-prizes-modal" class="modal-backdrop hidden">
+            <div class="modal-content">
+                <h2 class="text-2xl font-bold mb-6">管理獎品</h2>
+                
+                <!-- 新增獎品表單 -->
+                <div class="mb-6 p-4 bg-gray-700 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-3">新增獎品</h3>
+                    <form id="add-prize-form" class="space-y-3">
+                        <div>
+                            <label for="new-prize-name" class="block text-sm font-medium text-gray-300 mb-1">獎品名稱</label>
+                            <input type="text" id="new-prize-name" placeholder="例如：A賞：無線耳機" class="w-full bg-gray-600 border border-gray-500 rounded-lg p-2.5 text-white" required>
+                        </div>
+                        <div>
+                            <label for="new-prize-image" class="block text-sm font-medium text-gray-300 mb-1">圖片網址 (選填)</label>
+                            <input type="url" id="new-prize-image" placeholder="https://example.com/image.png" class="w-full bg-gray-600 border border-gray-500 rounded-lg p-2.5 text-white">
+                        </div>
+                        <div>
+                            <label for="new-prize-total" class="block text-sm font-medium text-gray-300 mb-1">獎品總數</label>
+                            <input type="number" id="new-prize-total" min="1" value="1" class="w-full bg-gray-600 border border-gray-500 rounded-lg p-2.5 text-white" required>
+                        </div>
+                        <button type="submit" class="w-full btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">新增獎品</button>
+                    </form>
+                </div>
+
+                 <!-- 現有獎品列表 -->
+                 <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">刪除獎品</h3>
+                    <div id="delete-prize-list" class="space-y-2">
+                        <!-- 可刪除的獎品列表會顯示在這裡 -->
+                    </div>
+                </div>
+                
+                <button id="close-manage-prizes-modal" class="w-full mt-6 btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">關閉</button>
+            </div>
+        </div>
+
         <!-- Generic Alert/Confirm Modal -->
         <div id="custom-modal" class="modal-backdrop hidden">
+             <!-- ... (通用 Modal HTML，與之前相同，故省略) ... -->
             <div class="modal-content">
                 <h2 id="custom-modal-title" class="text-2xl font-bold mb-4"></h2>
                 <p id="custom-modal-message" class="text-gray-300 mb-6"></p>
@@ -221,15 +282,9 @@
         // --- 設定 ---
         // !!! 重要：請將此處的 URL 替換為您部署 Google Apps Script 後得到的網址 !!!
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLff9LbLW5sWe0AQDxpmtjubvsw7hZ8RI_h19elwUOZRi4NMlQV62v114Fbx75Pby1ow/exec';
-
-        const prizeDetails = {
-            'A': { name: '🎧 A賞：小米無線耳機', total: 1, class: 'prize-A' },
-            'B': { name: '🍗 B賞：肯德基紙包雞套餐', total: 5, class: 'prize-B' },
-            'C': { name: '🥤 C賞：手搖飲料(無糖)', total: 12, class: 'prize-C' },
-            'D': { name: '💯 D賞：作業滿分', total: 15, class: 'prize-D' },
-            'E': { name: '🍬 E賞：零食一份', total: 30, class: 'prize-E' },
-        };
         
+        // *** 功能更新：移除靜態的 prizeDetails，改為從後端獲取 ***
+
         // --- DOM 元素 ---
         const app = document.getElementById('app');
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -240,14 +295,16 @@
         // --- 狀態管理 ---
         let state = {
             isLoggedIn: false,
-            sessionToken: null, // *** 安全性更新：儲存臨時通行證 ***
+            sessionToken: null, 
             currentClass: null,
             classes: [],
-            prizes: {},
+            prizeConfig: {}, // *** 新增：儲存獎品主設定檔 { prizeId: { name, image, total } } ***
+            prizes: {},      // *** 修改：儲存剩餘獎品 { prizeId: remaining_count } ***
             history: [],
         };
         
-        // --- Custom Modal Functions ---
+        // --- Custom Modal Functions (showAlert, showConfirm, showPrompt) ---
+        // ... (與之前相同，故省略) ...
         function showAlert(message, title = '通知') {
             const modal = document.getElementById('custom-modal');
             document.getElementById('custom-modal-title').textContent = title;
@@ -334,8 +391,8 @@
         }
         
         // --- API 呼叫 ---
-        // *** 安全性更新：修改 apiCall 以支援 POST，並區分公開和需驗證的操作 ***
         async function apiCall(action, params = {}, method = 'GET') {
+            // ... (與之前相同，故省略) ...
             if (!SCRIPT_URL) {
                 showAlert('錯誤：Google Apps Script 網址未設定！請在 index.html 中填寫 SCRIPT_URL 變數。', '設定錯誤');
                 return { success: false, error: 'SCRIPT_URL not set' };
@@ -350,14 +407,13 @@
                     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
                     response = await fetch(url);
                 } else { // POST
-                    // 需驗證的操作，自動加入 token
                     if (state.sessionToken) {
                         params.token = state.sessionToken;
                     }
                     response = await fetch(SCRIPT_URL, {
                         method: 'POST',
                         redirect: 'follow',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps Script 限制
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({ action, params })
                     });
                 }
@@ -367,9 +423,8 @@
                 }
                 const result = await response.json();
                 
-                // 後端回報 token 失效，強制登出
                 if (result.success === false && result.error === 'Authentication failed') {
-                    handleLogout(true); // 傳入 true 表示是因 token 失效而登出
+                    handleLogout(true); 
                 }
 
                 return result;
@@ -384,6 +439,7 @@
         
         // --- 視圖切換 ---
         function showView(view) {
+            // ... (與之前相同，故省略) ...
             loginScreen.classList.add('hidden');
             classSelectionScreen.classList.add('hidden');
             mainContent.classList.add('hidden');
@@ -395,38 +451,66 @@
         }
 
         // --- 渲染函式 ---
+        
+        // *** 功能更新：重寫 renderPrizes ***
         function renderPrizes() {
             const prizeGrid = document.getElementById('prize-grid');
             prizeGrid.innerHTML = '';
-            Object.entries(prizeDetails).forEach(([key, detail]) => {
-                const remaining = state.prizes[key] ?? 0;
-                const card = document.createElement('div');
-                card.className = `prize-card p-6 flex justify-between items-center ${detail.class}`;
+            
+            // 檢查是否有獎品
+            if (Object.keys(state.prizeConfig).length === 0) {
+                prizeGrid.innerHTML = `<p class="text-gray-400 col-span-1 md:col-span-3 text-center">目前沒有設定任何獎品。${state.isLoggedIn ? '請老師至「管理獎品」新增。' : ''}</p>`;
+                return;
+            }
+
+            // 依照 PrizeID 排序，確保顯示順序一致
+            const sortedPrizeIds = Object.keys(state.prizeConfig).sort();
+
+            sortedPrizeIds.forEach(prizeId => {
+                const detail = state.prizeConfig[prizeId];
+                const remaining = state.prizes[prizeId] ?? 0;
                 
+                const card = document.createElement('div');
+                card.className = 'prize-card flex flex-col';
+                
+                // 獎品圖片
+                const img = document.createElement('img');
+                img.src = detail.image || 'https://placehold.co/600x300/4a5568/e2e8f0?text=No+Image';
+                img.alt = detail.name;
+                img.className = 'prize-image';
+                img.onerror = () => { img.src = 'https://placehold.co/600x300/4a5568/e2e8f0?text=Image+Error'; };
+                
+                // 獎品內容
                 const contentDiv = document.createElement('div');
+                contentDiv.className = 'p-5 flex justify-between items-center';
+
+                const infoDiv = document.createElement('div');
                 const title = document.createElement('h3');
                 title.className = 'text-xl font-bold';
-                title.textContent = detail.name; // 使用 textContent 防範 XSS
+                title.textContent = detail.name;
+                
                 const desc = document.createElement('p');
                 desc.className = 'text-gray-400';
                 desc.textContent = `總數: ${detail.total}`;
-                contentDiv.append(title, desc);
+                infoDiv.append(title, desc);
 
+                // 剩餘數量
                 const countDiv = document.createElement('div');
-                countDiv.className = 'text-3xl font-bold';
+                countDiv.className = 'text-3xl font-bold ml-4';
                 const countSpan = document.createElement('span');
                 countSpan.textContent = remaining;
                 countDiv.appendChild(countSpan);
 
-                card.append(contentDiv, countDiv);
+                contentDiv.append(infoDiv, countDiv);
+                card.append(img, contentDiv);
                 prizeGrid.appendChild(card);
             });
         }
         
-        // *** 安全性更新：改用 document.createElement 和 textContent 防範 XSS ***
+        // *** 功能更新：重寫 renderHistory ***
         function renderHistory() {
             const historyLog = document.getElementById('history-log');
-            historyLog.innerHTML = ''; // Clear previous content
+            historyLog.innerHTML = ''; 
             if (state.history.length === 0) {
                  const row = historyLog.insertRow();
                  const cell = row.insertCell();
@@ -445,15 +529,18 @@
                 
                 const cellName = row.insertCell();
                 cellName.className = 'p-3 font-semibold';
-                cellName.textContent = item.studentName; // 安全地設定學生姓名
+                cellName.textContent = item.studentName; 
                 
                 const cellPrize = row.insertCell();
                 cellPrize.className = 'p-3';
-                cellPrize.textContent = prizeDetails[item.prize] ? prizeDetails[item.prize].name : '未知獎品'; // 安全地設定獎品名稱
+                // 從 state.prizeConfig 中查找獎品名稱
+                const prizeInfo = state.prizeConfig[item.prizeId];
+                cellPrize.textContent = prizeInfo ? prizeInfo.name : `[已刪除的獎品: ${item.prizeId}]`;
             });
         }
 
         function renderClassSelection() {
+            // ... (與之前相同，故省略) ...
             const classList = document.getElementById('class-list');
             classList.innerHTML = '';
             if (state.classes.length === 0 && state.isLoggedIn) {
@@ -471,8 +558,8 @@
         }
         
         // --- 邏輯處理 ---
-        // *** 安全性更新：改用 POST 登入並取得 token ***
         async function handleLogin(username, password) {
+            // ... (與之前相同，故省略) ...
             const result = await apiCall('login', { username, password }, 'POST');
             if (result.success && result.data.token) {
                 state.isLoggedIn = true;
@@ -487,12 +574,16 @@
         }
         
         function handleLogout(isTokenExpired = false) {
+            // ... (與之前相同，故省略) ...
             if (isTokenExpired) {
                 showAlert('閒置過久或憑證已失效，請重新登入。', '連線逾時');
             }
             state.isLoggedIn = false;
             state.sessionToken = null;
             state.currentClass = null;
+            state.prizeConfig = {}; // 清空獎品設定
+            state.prizes = {};
+            state.history = [];
             sessionStorage.removeItem('sessionToken');
             showView('login-screen');
             document.getElementById('teacher-controls').classList.add('hidden');
@@ -500,8 +591,8 @@
             document.getElementById('student-back-controls').classList.add('hidden');
         }
         
-        // 公開資料，使用 GET
         async function loadClasses() {
+            // ... (與之前相同，故省略) ...
             const result = await apiCall('getClasses', {}, 'GET');
             if (result.success) {
                 state.classes = result.data;
@@ -509,13 +600,14 @@
             }
         }
         
-        // 公開資料，使用 GET
+        // *** 功能更新：重寫 selectClass ***
         async function selectClass(className) {
             const result = await apiCall('getClassData', { className }, 'GET');
             if (result.success) {
                 state.currentClass = className;
-                state.prizes = result.data.prizes;
-                state.history = result.data.history;
+                state.prizeConfig = result.data.prizeConfig; // 儲存獎品設定
+                state.prizes = result.data.prizes;         // 儲存剩餘獎品
+                state.history = result.data.history;       // 儲存抽獎紀錄
                 
                 document.getElementById('class-name-display').textContent = `當前班級: ${className}`;
                 renderPrizes();
@@ -535,6 +627,13 @@
         }
         
         async function handleDraw() {
+            // 檢查是否還有獎品
+            const totalRemaining = Object.values(state.prizes).reduce((sum, count) => sum + count, 0);
+            if (totalRemaining === 0) {
+                showAlert('所有獎品都已抽完！', '抽獎結束');
+                return;
+            }
+            
             showPrompt('請輸入得獎學生姓名：', '進行抽獎', (studentName) => {
                 if (studentName === null) return;
                 if (!studentName || studentName.trim() === '') {
@@ -545,42 +644,147 @@
             });
         }
         
-        // 需驗證操作，使用 POST
         async function performDraw(studentName) {
             const result = await apiCall('drawPrize', { className: state.currentClass, studentName: studentName }, 'POST');
 
-            if (result.success && result.data.prize) {
-                const prizeWon = result.data.prize;
-                state.prizes = result.data.prizes;
-                state.history = result.data.history;
+            if (result.success && result.data.prizeWonId) {
+                const prizeWonId = result.data.prizeWonId;
+                state.prizes = result.data.prizes; // 更新剩餘獎品
+                state.history = result.data.history; // 更新紀錄
                 renderPrizes();
                 renderHistory();
-                showPrizeModal(prizeWon);
+                showPrizeModal(prizeWonId); // 傳入 prizeId
             } else {
                 showAlert(`抽獎失敗: ${result.error || '獎品已抽完'}`, '抽獎失敗');
             }
         }
 
-        function showPrizeModal(prize) {
+        // *** 功能更新：重寫 showPrizeModal ***
+        function showPrizeModal(prizeId) {
             const modal = document.getElementById('prize-modal');
             const resultDiv = document.getElementById('prize-result');
-            resultDiv.textContent = prizeDetails[prize].name;
-            resultDiv.className = `text-4xl font-bold my-8 ${prizeDetails[prize].class.replace('prize-', 'text-').replace('a0aec0', 'gray-300')}`;
-            modal.classList.remove('hidden');
+            const resultImg = document.getElementById('prize-result-image');
             
+            const prizeInfo = state.prizeConfig[prizeId];
+            if (!prizeInfo) {
+                resultDiv.textContent = '未知的獎品';
+                resultImg.classList.add('hidden');
+            } else {
+                resultDiv.textContent = prizeInfo.name;
+                if (prizeInfo.image) {
+                    resultImg.src = prizeInfo.image;
+                    resultImg.alt = prizeInfo.name;
+                    resultImg.classList.remove('hidden');
+                    resultImg.onerror = () => { resultImg.classList.add('hidden'); };
+                } else {
+                    resultImg.classList.add('hidden');
+                }
+            }
+            
+            modal.classList.remove('hidden');
             confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
         }
         
-        // 需驗證操作，使用 POST
         async function handleReset() {
-            showConfirm(`確定要重置班級「${state.currentClass}」的所有獎品和抽獎紀錄嗎？此操作無法復原！`, '重置確認', async (confirmed) => {
+            // ... (與之前相同，故省略) ...
+             showConfirm(`確定要重置班級「${state.currentClass}」的所有獎品和抽獎紀錄嗎？此操作無法復原！`, '重置確認', async (confirmed) => {
                 if(confirmed) {
                     const result = await apiCall('resetClass', { className: state.currentClass }, 'POST');
                     if (result.success) {
                         showAlert('重置成功！');
-                        await selectClass(state.currentClass);
+                        // 重置成功後，後端會回傳更新後的資料
+                        state.prizes = result.data.prizes;
+                        state.history = result.data.history;
+                        renderPrizes();
+                        renderHistory();
                     } else {
                         showAlert(`重置失敗: ${result.error}`, '操作失敗');
+                    }
+                }
+            });
+        }
+
+        // *** 功能更新：新增管理獎品的功能 ***
+        
+        // 渲染管理獎品 modal 中的列表
+        function renderManagePrizeList() {
+            const listDiv = document.getElementById('delete-prize-list');
+            listDiv.innerHTML = '';
+            
+            const sortedPrizeIds = Object.keys(state.prizeConfig).sort();
+            
+            if (sortedPrizeIds.length === 0) {
+                listDiv.innerHTML = '<p class="text-gray-500">目前沒有獎品可供刪除。</p>';
+                return;
+            }
+            
+            sortedPrizeIds.forEach(prizeId => {
+                const prize = state.prizeConfig[prizeId];
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center bg-gray-700 p-2 rounded-lg';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${prize.name} (總數: ${prize.total})`;
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger text-xs py-1 px-2 rounded';
+                deleteBtn.textContent = '刪除';
+                deleteBtn.dataset.prizeId = prizeId;
+                deleteBtn.dataset.prizeName = prize.name;
+                deleteBtn.addEventListener('click', handleDeletePrize);
+
+                item.append(nameSpan, deleteBtn);
+                listDiv.appendChild(item);
+            });
+        }
+        
+        // 處理新增獎品
+        async function handleAddPrize(event) {
+            event.preventDefault();
+            const name = document.getElementById('new-prize-name').value.trim();
+            const image = document.getElementById('new-prize-image').value.trim();
+            const total = parseInt(document.getElementById('new-prize-total').value, 10);
+
+            if (!name || total <= 0) {
+                showAlert('獎品名稱和總數為必填項！', '輸入錯誤');
+                return;
+            }
+
+            const prizeData = { name, image, total };
+            const result = await apiCall('managePrize', { task: 'add', prizeData }, 'POST');
+
+            if (result.success) {
+                showAlert(`獎品「${name}」新增成功！`);
+                document.getElementById('add-prize-form').reset();
+                // 更新成功，後端會回傳新的 prizeConfig
+                state.prizeConfig = result.data.prizeConfig;
+                // 同步更新目前班級的剩餘獎品 (新獎品會被加入)
+                state.prizes = result.data.prizes;
+                renderManagePrizeList(); // 重新渲染刪除列表
+                renderPrizes(); // 重新渲染主畫面獎品
+            } else {
+                showAlert(`新增失敗: ${result.error}`, '操作失敗');
+            }
+        }
+        
+        // 處理刪除獎品
+        async function handleDeletePrize(event) {
+            const prizeId = event.target.dataset.prizeId;
+            const prizeName = event.target.dataset.prizeName;
+            
+            showConfirm(`確定要刪除獎品「${prizeName}」嗎？\n\n警告：所有班級的此獎品（包含剩餘數量和抽獎紀錄）都將被永久刪除！此操作無法復原！`, '刪除確認', async (confirmed) => {
+                if(confirmed){
+                    const result = await apiCall('managePrize', { task: 'delete', prizeId }, 'POST');
+                    if (result.success) {
+                        showAlert(`獎品「${prizeName}」已刪除。`);
+                        // 更新成功，後端會回傳新的 prizeConfig 和 prizes
+                        state.prizeConfig = result.data.prizeConfig;
+                        state.prizes = result.data.prizes;
+                        renderManagePrizeList(); // 重新渲染刪除列表
+                        renderPrizes(); // 重新渲染主畫面獎品
+                        renderHistory(); // 重新渲染歷史紀錄 (已刪除的會顯示不同)
+                    } else {
+                        showAlert(`刪除失敗: ${result.error}`, '操作失敗');
                     }
                 }
             });
@@ -588,6 +792,7 @@
         
         // --- 初始化 & 事件監聽 ---
         document.addEventListener('DOMContentLoaded', () => {
+            // ... (登入, 學生模式, 返回按鈕等事件監聽，與之前相同) ...
             const savedToken = sessionStorage.getItem('sessionToken');
             if(savedToken){
                 state.isLoggedIn = true;
@@ -619,6 +824,9 @@
             
             document.getElementById('student-back-btn').addEventListener('click', () => {
                 state.currentClass = null;
+                state.prizeConfig = {}; // 清空獎品設定
+                state.prizes = {};
+                state.history = [];
                 showView('class-selection-screen');
             });
 
@@ -630,19 +838,17 @@
                  document.getElementById('prize-modal').classList.add('hidden');
             });
             
-            const manageModal = document.getElementById('manage-classes-modal');
-            
+            // --- 管理班級 Modal ---
+            const manageClassModal = document.getElementById('manage-classes-modal');
             document.getElementById('manage-classes-btn').addEventListener('click', () => {
-                renderDeleteClassList();
-                manageModal.classList.remove('hidden');
+                renderDeleteClassList(); // (此函式在下面)
+                manageClassModal.classList.remove('hidden');
             });
-
             document.getElementById('close-manage-modal').addEventListener('click', () => {
-                manageModal.classList.add('hidden');
+                manageClassModal.classList.add('hidden');
             });
-            
-            // 需驗證操作，使用 POST
             document.getElementById('add-class-btn').addEventListener('click', async () => {
+                // ... (新增班級邏輯，與之前相同) ...
                 const newClassNameInput = document.getElementById('new-class-name');
                 const newClassName = newClassNameInput.value.trim();
                 if (!newClassName) {
@@ -662,8 +868,8 @@
                 }
             });
             
-            // *** 安全性更新：改用 document.createElement 和 textContent 防範 XSS ***
             function renderDeleteClassList() {
+                // ... (刪除班級列表渲染，與之前相同) ...
                 const listDiv = document.getElementById('delete-class-list');
                 listDiv.innerHTML = '';
                 if(state.classes.length === 0){
@@ -675,21 +881,21 @@
                     item.className = 'flex justify-between items-center bg-gray-700 p-2 rounded-lg';
                     
                     const nameSpan = document.createElement('span');
-                    nameSpan.textContent = className; // 安全地設定班級名稱
+                    nameSpan.textContent = className;
                     
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'btn btn-danger text-xs py-1 px-2 rounded';
                     deleteBtn.textContent = '刪除';
                     deleteBtn.dataset.class = className;
-                    deleteBtn.addEventListener('click', handleDeleteClass);
+                    deleteBtn.addEventListener('click', handleDeleteClass); // (此函式在下面)
 
                     item.append(nameSpan, deleteBtn);
                     listDiv.appendChild(item);
                 });
             }
             
-            // 需驗證操作，使用 POST
             async function handleDeleteClass(event) {
+                // ... (刪除班級邏輯，與之前相同) ...
                 const className = event.target.dataset.class;
                 showConfirm(`確定要刪除班級「${className}」嗎？所有相關資料將會遺失！`, '刪除確認', async (confirmed) => {
                     if(confirmed){
@@ -698,7 +904,12 @@
                             showAlert(`班級「${className}」已刪除。`);
                             state.classes = state.classes.filter(c => c !== className);
                             if(state.currentClass === className){
-                               handleLogout();
+                               // 如果刪除的是當前班級，登出回到班級選擇
+                               state.currentClass = null;
+                               state.prizeConfig = {};
+                               state.prizes = {};
+                               state.history = [];
+                               showView('class-selection-screen');
                             }
                             renderDeleteClassList();
                             renderClassSelection();
@@ -708,8 +919,22 @@
                     }
                 });
             }
+            
+            // *** 功能更新：管理獎品 Modal 事件監聽 ***
+            const managePrizesModal = document.getElementById('manage-prizes-modal');
+            
+            document.getElementById('manage-prizes-btn').addEventListener('click', () => {
+                renderManagePrizeList();
+                managePrizesModal.classList.remove('hidden');
+            });
+
+            document.getElementById('close-manage-prizes-modal').addEventListener('click', () => {
+                managePrizesModal.classList.add('hidden');
+            });
+            
+            document.getElementById('add-prize-form').addEventListener('submit', handleAddPrize);
+
         });
     </script>
 </body>
 </html>
-
